@@ -4,7 +4,7 @@ import json
 
 load_dotenv()
 
-print("API KEY:", os.getenv("OPENWEATHER_API_KEY"))
+# print("API KEY:", os.getenv("OPENWEATHER_API_KEY"))
 
 
 def get_weather(city, when="today"):
@@ -21,4 +21,4 @@ def get_weather(city, when="today"):
 
     return requests.get(url).json()
 
-print(json.dumps(get_weather("dhaka")))
+# print(json.dumps(get_weather("dhaka")))

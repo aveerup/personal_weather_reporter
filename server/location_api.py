@@ -9,4 +9,4 @@ def get_location():
         "lon": data.get("lon")
     }
 
-print(get_location())
+# print(get_location())
