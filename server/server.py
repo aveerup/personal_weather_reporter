@@ -1,22 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from pymongo import MongoClient
 from dotenv import load_dotenv
-import weather_agent, os
+import weather_agent, os, json
+import model.users
 
 app = Flask(__name__)
-
-db_key = os.getenv("MONGO_DB_KEY")
-client = MongoClient(f"mongodb+srv://avee:{db_key}@cluster0.6zpvyru.mongodb.net/")
-db = client["weather_agent"]
-
-# db.users.insert_one({
-#     "name" : "avee",
-#     "password" : 123,
-#     "email" : "avee@gmail.com"
-# })
-
-# db.users.delete_one({"name" : "avee"})
 
 CORS(app, resources={r'/*': {"origins": "*"}}, supports_credentials = True)
 
@@ -33,9 +21,39 @@ def home():
         return result
     elif request.method == 'GET':
         return "I am in home get"
-    
     else:
         return "I am in home"
+    
+@app.route("/home/createUser", methods=['POST'])
+def home_create_new_user():
+    data = request.get_json()
+
+    name = data.get('name')
+    password = data.get('password')
+    email = data.get('email')
+    
+    res, res_message = model.users.set_user(name, password, email)
+
+    return {
+        "res": res,
+        "res_message":res_message
+    }
+
+@app.route("/home/changeUser", methods=['POST'])
+def home_change_user():
+    data = request.get_json()
+
+    email = data.get('email')
+    password = data.get('password')
+    print(email)
+    print(password)
+
+    res, res_message = model.users.verify_user(email, password)
+
+    return {
+        "res" : res,
+        "res_message" : res_message
+    }
 
 if __name__ == "__main__":
     app.run(debug = True)
