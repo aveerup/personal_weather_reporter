@@ -8,6 +8,7 @@ import { IoMdAdd } from "react-icons/io";
 
 export const Home = ()=>{
     const [prompt, setPrompt] = useState("")
+    const [historyCall, setHistoryCall] = useState(false)
     const [response, setResponse] = useState("")
     const [recording, setRecording] = useState(false)
     const [audio, setAudio] = useState(null)
@@ -20,6 +21,7 @@ export const Home = ()=>{
     const [password, setPassword] = useState("")
     const [passVis, setPassVis] = useState(false)
     const [user, setUser] = useState(null)
+    const [chatHistory, setChatHistory] = useState([])
     const audioChunk = useRef([])
     const mediaRecorderRef = useRef(null)
 
@@ -34,6 +36,26 @@ export const Home = ()=>{
             }
         }
     }, []);
+
+    useEffect(() => {
+        getChatHistory()
+    },[user, historyCall])
+
+    const getChatHistory = async ()=>{
+        
+        let user_email = ""
+        if(user != null){
+            user_email = user["email"]
+        }else{
+            return []
+        }
+        
+        let res = await api.get("/home/chatHistory", {
+            params: { email : user_email }
+          })          
+        console.log(res.data)
+        setChatHistory(res.data)
+    }
 
     const sendPrompt = async ()=>{
         
@@ -51,6 +73,7 @@ export const Home = ()=>{
             console.log(res)
 
             setResponse(res.data["response"])
+            setHistoryCall(prev => !prev)
 
             setAudio(null)
             setAudioBlob(null)
@@ -67,6 +90,7 @@ export const Home = ()=>{
             console.log(res)
             setResponse(res.data["response"])
 
+            setHistoryCall(prev => !prev)
             setPrompt("")
         }
         
@@ -130,6 +154,8 @@ export const Home = ()=>{
     const userLogOut = ()=>{
         localStorage.removeItem("user")
         setUser(null)
+        setResponse("")
+        setChatHistory([])
         setLogOut(false)
     }
 
@@ -225,6 +251,20 @@ export const Home = ()=>{
                     <div className="m-6 bg-amber-700 p-4 rounded-2xl">
                         {response}
                     </div>:
+                    <></>
+                }
+                {chatHistory != []?
+                    <>
+                        <div>
+                            {chatHistory.map((msg, index) => (
+                                <div className="m-3" key={index}>
+                                    <p className="text-green-600">{msg.prompt}</p>
+                                    <p className="text-black" >{msg.response}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                    :
                     <></>
                 }
                 {createUser?

@@ -1,6 +1,8 @@
 from . import db
 current_db = db.db
 
+import time
+
 def set_chat_history(email, prompt, response):
     user = current_db.users.find_one({"email" : email})
 
@@ -8,7 +10,8 @@ def set_chat_history(email, prompt, response):
         current_db.chat_history.insert_one({
             "email" : email,
             "prompt" : prompt,
-            "response" : response
+            "response" : response,
+            "time" : time.time()
         })
 
         return True, "chat history updated"
@@ -19,7 +22,7 @@ def get_chat_history(email):
     user = current_db.users.find_one({"email" : email})
 
     if user:
-        chat_cursor = current_db.chat_history.find({"email":email})
+        chat_cursor = current_db.chat_history.find({"email":email},{"_id":0, "email":0})
         chat_list = list(chat_cursor)
 
         return True, chat_list

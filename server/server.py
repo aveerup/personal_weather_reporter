@@ -54,8 +54,12 @@ def upload_audio():
     text_prompt = transcribe_audio.speech_to_text("./audio_uploads/recording.wav")
     # print("text prompt ", type(text_prompt))
 
-    result = {"response" : weather_agent.weather_agent(text_prompt)}
+    response = weather_agent.weather_agent(text_prompt)
+    result = {"response" : response}
     # print(result)
+
+    if user_email != "":
+            model.chat_history.set_chat_history(user_email, text_prompt, response)
 
     return jsonify(result), 200
 
@@ -90,6 +94,19 @@ def home_change_user():
         "res" : res,
         "res_message" : res_message
     }
+
+@app.route("/home/chatHistory", methods=['GET'])
+def get_chat_history():
+    email = request.args.get("email")
+
+    # email = data.get('email')
+    res, chat_list = model.chat_history.get_chat_history(email)
+    print(chat_list)
+
+    if res:
+        return jsonify(chat_list), 200
+    else:
+        return "Some error occurred while getting chat history", 400
 
 if __name__ == "__main__":
     app.run(debug = True)
