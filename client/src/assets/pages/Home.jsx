@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import api from "../services/Axios.js"
 import { IoSend } from "react-icons/io5"
 import { FaMicrophoneAlt, FaRegEye, FaEyeSlash } from "react-icons/fa"
@@ -11,8 +11,10 @@ export const Home = ()=>{
     const [response, setResponse] = useState("")
     const [recording, setRecording] = useState(false)
     const [audio, setAudio] = useState(null)
+    const [audioBlob, setAudioBlob] = useState(null)
     const [createUser, setCreateUser] = useState(false)
     const [changeUser, setChangeUser] = useState(false)
+    const [logOut, setLogOut] = useState(false)
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -21,10 +23,53 @@ export const Home = ()=>{
     const audioChunk = useRef([])
     const mediaRecorderRef = useRef(null)
 
+    useEffect(() => {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+            const { user, expiry } = JSON.parse(stored);
+            if (Date.now() < expiry) {
+                setUser(user);
+            } else {
+                localStorage.removeItem("user");
+            }
+        }
+    }, []);
+
     const sendPrompt = async ()=>{
-        let res = await api.post("/home",{"prompt":prompt})
-        console.log(res)
-        setResponse(res.data["response"])
+        
+        let user_email = ""
+        if(user != null)
+            user_email = user["email"]
+
+        if(audio){
+            let formData = new FormData();
+            
+            formData.append("user_email", user_email)
+            formData.append("file", audioBlob, "recording.wav")
+            
+            let res = await api.post("/audioPrompt", formData)
+            console.log(res)
+
+            setResponse(res.data["response"])
+
+            setAudio(null)
+            setAudioBlob(null)
+
+        }else{
+            if(prompt.trim() == ""){
+                console.log("no prompt value")
+                return null
+            }
+                
+            let res = await api.post("/home",{
+                "user_email" : user_email,
+                "prompt":prompt})
+            console.log(res)
+            setResponse(res.data["response"])
+
+            setPrompt("")
+        }
+        
     }
 
     const createNewUser = async ()=>{
@@ -44,6 +89,9 @@ export const Home = ()=>{
                 "name" : name,
                 "email" : email
             }
+
+            const expiry = Date.now() + 1000 * 60 * 30; 
+            localStorage.setItem("user", JSON.stringify({ ...new_user, expiry }));
 
             setUser(new_user)
         }
@@ -69,11 +117,20 @@ export const Home = ()=>{
                 "email" : res.data.res_message.email
             }
 
+            const expiry = Date.now() + 1000 * 60 * 30; 
+            localStorage.setItem("user", JSON.stringify({ "user" : new_user, expiry }));
+
             setUser(new_user)
         }
 
         clearState();
 
+    }
+
+    const userLogOut = ()=>{
+        localStorage.removeItem("user")
+        setUser(null)
+        setLogOut(false)
     }
 
     const startRec = async ()=>{
@@ -92,8 +149,9 @@ export const Home = ()=>{
                 mediaRecorder.onstop = ()=>{
                     setRecording(false)
 
-                    const audioBlob = new Blob(audioChunk.current, { type: "audio/wav" });
-                    const audioUrl = URL.createObjectURL(audioBlob)
+                    const tempAudioBlob = new Blob(audioChunk.current, { type: "audio/wav" })
+                    setAudioBlob(tempAudioBlob);
+                    const audioUrl = URL.createObjectURL(tempAudioBlob)
                     setAudio(audioUrl)
 
                     audioChunk.current = [];
@@ -135,7 +193,7 @@ export const Home = ()=>{
                                 <audio controls src={audio} className="w-[95%]"/>:
                             </div> 
                             <div className="w-[5%] flex flex-wrap items-center ml-auto mr-auto text-3xl hover:text-4xl">
-                                <IoCloseCircleSharp onClick={()=>{setAudio(null)}} className="m-auto block text-center text-red-500"/>
+                                <IoCloseCircleSharp onClick={()=>{setAudio(null); setAudioBlob(null);}} className="m-auto block text-center text-red-500"/>
                             </div> 
                         </>
                         :
@@ -155,11 +213,11 @@ export const Home = ()=>{
                     <div onClick={sendPrompt} className=" w-[5%] flex flex-wrap items-center ml-auto mr-auto text-2xl hover:text-3xl">
                         <IoSend className="block text-center text-amber-900"/>
                     </div>
-                    <div onClick={()=>{setCreateUser(true)}} className=" w-[5%] flex flex-wrap justify-center items-center ml-auto mr-auto text-3xl hover:text-4xl">
+                    <div className=" w-[5%] flex flex-wrap justify-center items-center ml-auto mr-auto text-3xl hover:text-4xl">
                         {user?
-                            <span title={"user : "+user["name"]+"\n"+"email: "+user["email"]} className="block text-center text-amber-900 text-bold">{user["name"][0]}</span>
+                            <span onClick={()=>{setLogOut(true)}} title={"user : "+user["name"]+"\n"+"email: "+user["email"]} className="block text-center text-amber-900 text-bold">{user["name"][0]}</span>
                             :
-                            <IoMdAdd className="block text-center text-amber-900"/>
+                            <IoMdAdd onClick={()=>{setCreateUser(true)}} className="block text-center text-amber-900"/>
                         }
                     </div>
                 </div>
@@ -170,7 +228,7 @@ export const Home = ()=>{
                     <></>
                 }
                 {createUser?
-                    <div className="fixed z-10 w-full h-full flex items-center justify-center">
+                    <div className="select-none fixed z-10 w-full h-full flex items-center justify-center">
                         <div className="fixed -z-10 w-full h-full bg-white/20 backdrop-blur-sm"></div>
                         <div className="flex flex-col justify-center items-center min-w-100 w-[60%] min-h-[50%] bg-amber-600/70 rounded-2xl">
                             <label htmlFor="toggle" className="select-none relative h-8 mt-3 md-3 bg-white text-black font-bold rounded-2xl flex items-center">
@@ -242,6 +300,24 @@ export const Home = ()=>{
                             </div>
                         </div>
                     </div>:
+                    <></>
+                }
+                {logOut?
+                    <>
+                        <div className="select-none fixed z-10 w-full h-full flex items-center justify-center">
+                            <div className="fixed -z-10 w-full h-full bg-white/20 backdrop-blur-sm"></div>
+                            <div className="flex flex-col text-bold text-black items-center justify-center min-w-50 w-[50%] h-[40%] bg-amber-500 rounded-2xl">
+                                <span className="w-full text-center text-2xl font-bold text-white">Current User:</span>
+                                <span className="text-2xl">{user["name"]}</span>
+                                <span className="text-2xl">{user["email"]}</span>
+                                <div className="mt-2 flex flex-wrap jusify-center">
+                                    <div onClick={()=>{setLogOut(false)}} className="text-2xl m-2 active:scale-90 p-2 rounded-2xl font-medium transition-transform duration-300 hover:bg-green-600 hover:scale-110 bg-white">cancel</div>
+                                    <div onClick={()=>{userLogOut()}} className="text-2xl m-2 active:scale-90 p-2 rounded-2xl font-medium transition-transform duration-300 hover:bg-red-600 hover:scale-110 bg-red-500">log out</div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                    :
                     <></>
                 }
                 

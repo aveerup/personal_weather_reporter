@@ -6,8 +6,11 @@ def weather_agent(query):
 
     print("parsed query ", parsed_query)
 
-    if parsed_query["weather_terminology"] == None:
+    if parsed_query["weather_terminology"] == None and parsed_query["when"] == None:
         return "Sorry!! Some unexpected error occured. I didn't understand your query."
+
+    if parsed_query["weather_terminology"] == None:
+        parsed_query["weather_terminology"] = "sunny or rainy"
 
     if parsed_query["region_name"] == None:
         parsed_query["region_name"] = location_api.get_location()["city"]

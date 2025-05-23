@@ -3,6 +3,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import weather_agent, os, json
 import model.users
+import model.chat_history
+import transcribe_audio
 
 app = Flask(__name__)
 
@@ -13,16 +15,50 @@ def home():
     if request.method == 'POST':
         print(request)
         data = request.get_json()
+        user_email = data.get('user_email')
+        print("user email ", user_email)
         prompt = data.get('prompt')
         print(prompt)
-        result = jsonify({"response" : weather_agent.weather_agent(prompt)})
+        response = weather_agent.weather_agent(prompt)
+        result = jsonify({"response" : response})
         print(result)
 
-        return result
+        if user_email != "":
+            model.chat_history.set_chat_history(user_email, prompt, response)
+
+        return result, 200
     elif request.method == 'GET':
-        return "I am in home get"
+        return "I am in home get", 200
     else:
-        return "I am in home"
+        return "I am in home", 200
+    
+
+UPLOAD_FOLDER = "audio_uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    
+@app.route("/audioPrompt", methods=["POST"])
+def upload_audio():
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    user_email = request.form["user_email"]
+    print("user email ", user_email)
+    file = request.files["file"]
+    
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    save_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(save_path)
+
+    text_prompt = transcribe_audio.speech_to_text("./audio_uploads/recording.wav")
+    # print("text prompt ", type(text_prompt))
+
+    result = {"response" : weather_agent.weather_agent(text_prompt)}
+    # print(result)
+
+    return jsonify(result), 200
+
     
 @app.route("/home/createUser", methods=['POST'])
 def home_create_new_user():

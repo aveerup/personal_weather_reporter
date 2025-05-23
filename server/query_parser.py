@@ -15,7 +15,7 @@ def get_query_tokens(query):
         messages = [
             {
                 "role" : "user",
-                "content" :f"${query}. separate the 'weather_terminology', 'region_name' and 'when' from the sentence in json format. If any of the info not found or there is no sentence is given put null as their value. no extra line or explanation. don't give ```json type text.",
+                "content" :f"${query}. separate the 'weather_terminology', 'region_name' and 'when' from the sentence in json format.If the timeframe is NOT 'today'(such as 'this week', 'upcoming days'), use 'next day' for the 'when' field. If any of the info not found or there is no sentence is given put null as their value. no extra line or explanation. don't give ```json type text.",
             }
         ],
         model="meta-llama/llama-4-scout-17b-16e-instruct",
@@ -45,7 +45,7 @@ def explain_weather_report(weather_report, weather_terminology):
         messages = [
             {
                 "role" : "user",
-                "content" :f"$report = {weather_report}. weather_terminology = {weather_terminology}. explain the report about the weather of the given city. No need to explain everything. Just give a brief report on the weather terminology provided to you. No need to use ** bold sign also.",
+                "content" :f"$report = {weather_report}. weather_terminology = {weather_terminology}. explain the report about the weather of the given city. No need to explain everything. Just give a brief report on the weather terminology provided to you.Also keep in mind if clouds.add is greater than 70 then you can say it's gonna be cloudy and if humidity is greater than 90 then there is chance of rain. If temparature is high, then give indication of it too. No need to use ** bold sign also.",
             }
         ],
         model="meta-llama/llama-4-scout-17b-16e-instruct",

@@ -13,7 +13,7 @@ def get_weather(city, when="today"):
     
     if when == "today":
         url = f"{endpoint}weather?q={city}&appid={api_key}&units=metric"
-    elif when == "forecast":
+    elif when == "next day" or when == "tomorrow":
         url = f"{endpoint}forecast?q={city}&appid={api_key}&units=metric"
     else:
         # handle historical (OpenWeather has paid historical data)
